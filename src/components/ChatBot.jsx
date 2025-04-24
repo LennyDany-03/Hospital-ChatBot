@@ -24,7 +24,10 @@ const ChatBot = () => {
   // Process the bot response to detect appointment confirmation
   const processResponse = (text) => {
     // Check if the response contains appointment confirmation
-    if (text.includes("appointment") && text.includes("confirmed") && text.includes("Dr.")) {
+    if (
+      (text.includes("appointment") && text.includes("confirmed")) ||
+      (text.includes("appointment") && text.includes("ID is"))
+    ) {
       // Extract doctor name
       const doctorMatch = text.match(/Dr\.\s([A-Za-z\s]+)/)
       const doctorName = doctorMatch ? doctorMatch[0] : "Doctor"
@@ -33,8 +36,8 @@ const ChatBot = () => {
       const dateMatch = text.match(/(\d{1,2}(st|nd|rd|th)?\s[A-Za-z]+|\d{1,2}\/\d{1,2}\/\d{4})/)
       const timeMatch = text.match(/(\d{1,2}:\d{2}\s?(AM|PM))/i)
 
-      // Extract patient name
-      const nameMatch = text.match(/for\s([A-Za-z\s]+)on/)
+      // Extract patient name - improved pattern matching
+      const nameMatch = text.match(/for\s([A-Za-z\s]+)\son/) || text.match(/for\s([A-Za-z\s]+)\sat/)
       const patientName = nameMatch ? nameMatch[1].trim() : "Patient"
 
       // Create appointment data
@@ -45,7 +48,9 @@ const ChatBot = () => {
         patientName: patientName,
         hospitalName: "HealthBridge Hospital",
         address: "2nd Cross Road, Midtown",
-        appointmentId: `HB-${Math.floor(100000 + Math.random() * 900000)}`,
+        appointmentId: text.match(/ID is ([A-Z0-9-]+)/)
+          ? text.match(/ID is ([A-Z0-9-]+)/)[1]
+          : `HB-${Math.floor(100000 + Math.random() * 900000)}`,
       }
 
       setAppointmentData(newAppointmentData)

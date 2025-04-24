@@ -49,61 +49,105 @@ Sage: I recommend you consult Dr. Arvind Bhatia, our cardiologist. He's availabl
 Make your responses natural, detailed, and supportive.
 `
 
-// Track conversation state
-let conversationState = {
+// Track conversation state - make it persistent
+const conversationState = {
   isBookingAppointment: false,
   doctorName: null,
   patientName: null,
   appointmentDate: null,
   appointmentTime: null,
   stage: "initial", // initial, name, date, time, confirmed
+  previousMessages: [], // Store previous messages for context
+}
+
+// Map symptoms to doctors for better recommendations
+const symptomToDoctorMap = {
+  stomach: "Dr. Anita Rao", // General Medicine
+  headache: "Dr. Priya Sharma", // Neurology
+  skin: "Dr. Shalini Das", // Dermatology
+  bone: "Dr. Vikram Sinha", // Orthopedics
+  joint: "Dr. Vikram Sinha", // Orthopedics
+  ear: "Dr. Neha Kapoor", // ENT
+  nose: "Dr. Neha Kapoor", // ENT
+  throat: "Dr. Neha Kapoor", // ENT
+  heart: "Dr. Arvind Bhatia", // Cardiology
+  "chest pain": "Dr. Arvind Bhatia", // Cardiology
+  eye: "Dr. Rahul Verma", // Ophthalmology
+  vision: "Dr. Rahul Verma", // Ophthalmology
+  mental: "Dr. Meera Patel", // Psychiatry
+  depression: "Dr. Meera Patel", // Psychiatry
+  anxiety: "Dr. Meera Patel", // Psychiatry
+  gynecological: "Dr. Sunita Gupta", // Gynecology
+  pregnancy: "Dr. Sunita Gupta", // Gynecology
+  child: "Dr. Rajiv Menon", // Pediatrics
+  kid: "Dr. Rajiv Menon", // Pediatrics
+  baby: "Dr. Rajiv Menon", // Pediatrics
 }
 
 export const getGeminiResponse = async (userPrompt) => {
   try {
+    console.log("Current conversation state:", JSON.stringify(conversationState))
+
+    // Add user message to previous messages for context
+    conversationState.previousMessages.push({ role: "user", content: userPrompt })
+
     // Process user input based on conversation state
     if (conversationState.isBookingAppointment) {
+      console.log("In booking flow, stage:", conversationState.stage)
+
       switch (conversationState.stage) {
         case "name":
           // User is providing their name
           conversationState.patientName = userPrompt
           conversationState.stage = "date"
-          return `Thank you, ${userPrompt}. What date would you prefer for your appointment with ${conversationState.doctorName}? (Please specify a date like "tomorrow", "next Monday", or DD/MM/YYYY)`
+          const nameResponse = `Thank you, ${userPrompt}. What date would you prefer for your appointment with ${conversationState.doctorName}? (Please specify a date like "tomorrow", "next Monday", or DD/MM/YYYY)`
+
+          // Add bot response to previous messages
+          conversationState.previousMessages.push({ role: "assistant", content: nameResponse })
+          return nameResponse
 
         case "date":
           // User is providing the date
           conversationState.appointmentDate = userPrompt
           conversationState.stage = "time"
-          return `Great! And what time would work best for you on ${userPrompt}? Dr. ${conversationState.doctorName.split(" ")[1]} is available between 9:00 AM and 5:00 PM.`
+          const dateResponse = `Great! And what time would work best for you on ${userPrompt}? Dr. ${conversationState.doctorName.split(" ")[1]} is available between 9:00 AM and 5:00 PM.`
+
+          // Add bot response to previous messages
+          conversationState.previousMessages.push({ role: "assistant", content: dateResponse })
+          return dateResponse
 
         case "time":
           // User is providing the time
           conversationState.appointmentTime = userPrompt
-          conversationState.stage = "confirmed"
 
           // Generate a random appointment ID
           const appointmentId = `HB-${Math.floor(100000 + Math.random() * 900000)}`
 
-          // Reset conversation state
-          conversationState = {
-            isBookingAppointment: false,
-            doctorName: null,
-            patientName: null,
-            appointmentDate: null,
-            appointmentTime: null,
-            stage: "initial",
-          }
+          // Create confirmation message BEFORE resetting state
+          const confirmationMessage = `Your appointment with ${conversationState.doctorName} has been confirmed for ${conversationState.patientName} on ${conversationState.appointmentDate} at ${conversationState.appointmentTime}. Your appointment ID is ${appointmentId}. You can download your appointment letter from the button below.`
 
-          return `Your appointment with ${conversationState.doctorName} has been confirmed for ${conversationState.patientName} on ${conversationState.appointmentDate} at ${conversationState.appointmentTime}. Your appointment ID is ${appointmentId}. You can download your appointment letter from the button below.`
+          // Add bot response to previous messages
+          conversationState.previousMessages.push({ role: "assistant", content: confirmationMessage })
+
+          // Reset booking state but keep previous messages
+          conversationState.isBookingAppointment = false
+          conversationState.doctorName = null
+          conversationState.patientName = null
+          conversationState.appointmentDate = null
+          conversationState.appointmentTime = null
+          conversationState.stage = "initial"
+
+          return confirmationMessage
       }
     }
 
     // Check if user wants to book an appointment
-    if (
-      userPrompt.toLowerCase().includes("appointment") ||
-      userPrompt.toLowerCase().includes("book") ||
-      userPrompt.toLowerCase().includes("schedule")
-    ) {
+    const bookingKeywords = ["appointment", "book", "schedule", "booking", "reserve"]
+    const wantsToBook = bookingKeywords.some((keyword) => userPrompt.toLowerCase().includes(keyword))
+
+    if (wantsToBook) {
+      console.log("User wants to book an appointment")
+
       // Extract doctor name if mentioned
       let doctorName = null
       const doctorMatches = [
@@ -120,37 +164,56 @@ export const getGeminiResponse = async (userPrompt) => {
       ]
 
       for (const doctor of doctorMatches) {
-        if (userPrompt.includes(doctor)) {
+        if (userPrompt.toLowerCase().includes(doctor.toLowerCase())) {
           doctorName = doctor
           break
         }
       }
 
-      if (doctorName) {
-        conversationState = {
-          isBookingAppointment: true,
-          doctorName: doctorName,
-          patientName: null,
-          appointmentDate: null,
-          appointmentTime: null,
-          stage: "name",
+      // If no specific doctor was mentioned, try to infer from symptoms
+      if (!doctorName) {
+        for (const [symptom, doctor] of Object.entries(symptomToDoctorMap)) {
+          if (userPrompt.toLowerCase().includes(symptom)) {
+            doctorName = doctor
+            break
+          }
         }
+      }
 
-        return `I'd be happy to book an appointment with ${doctorName} for you. Could you please provide your full name?`
+      if (doctorName) {
+        console.log("Doctor found:", doctorName)
+
+        // Set conversation state for booking flow
+        conversationState.isBookingAppointment = true
+        conversationState.doctorName = doctorName
+        conversationState.stage = "name"
+
+        const bookingResponse = `I'd be happy to book an appointment with ${doctorName} for you. Could you please provide your full name?`
+
+        // Add bot response to previous messages
+        conversationState.previousMessages.push({ role: "assistant", content: bookingResponse })
+        return bookingResponse
       }
     }
 
-    const fullPrompt = `${systemPrompt}\nUser: ${userPrompt}`
+    // If we reach here, use the Gemini API for a response
+    console.log("Using Gemini API for response")
 
-    console.log("Sending Request to Gemini API:")
-    console.log("Request Payload:", {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: fullPrompt }],
-        },
-      ],
+    // Build context from previous messages (limit to last 5 for brevity)
+    const recentMessages = conversationState.previousMessages.slice(-10)
+    let contextPrompt = systemPrompt + "\n\nConversation history:\n"
+
+    recentMessages.forEach((msg) => {
+      if (msg.role === "user") {
+        contextPrompt += `User: ${msg.content}\n`
+      } else {
+        contextPrompt += `Sage: ${msg.content}\n`
+      }
     })
+
+    contextPrompt += `\nUser: ${userPrompt}`
+
+    console.log("Sending Request to Gemini API with context")
 
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
@@ -158,7 +221,7 @@ export const getGeminiResponse = async (userPrompt) => {
         contents: [
           {
             role: "user",
-            parts: [{ text: fullPrompt }],
+            parts: [{ text: contextPrompt }],
           },
         ],
       },
@@ -167,13 +230,38 @@ export const getGeminiResponse = async (userPrompt) => {
       },
     )
 
-    // Log the full response for better understanding
-    console.log("API Response:", response.data)
-
     const candidates = response.data.candidates
-    return candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini."
+    const botResponse = candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini."
+
+    // Add bot response to previous messages
+    conversationState.previousMessages.push({ role: "assistant", content: botResponse })
+
+    // Check if the response suggests a doctor and the user might want to book
+    const doctorMatches = [
+      "Dr. Anita Rao",
+      "Dr. Rajiv Menon",
+      "Dr. Shalini Das",
+      "Dr. Vikram Sinha",
+      "Dr. Neha Kapoor",
+      "Dr. Arvind Bhatia",
+      "Dr. Priya Sharma",
+      "Dr. Rahul Verma",
+      "Dr. Meera Patel",
+      "Dr. Sunita Gupta",
+    ]
+    if (botResponse.includes("Would you like to book an appointment")) {
+      for (const doctor of doctorMatches) {
+        if (botResponse.includes(doctor)) {
+          // Pre-set the doctor for easier booking in the next step
+          conversationState.potentialDoctor = doctor
+          break
+        }
+      }
+    }
+
+    return botResponse
   } catch (error) {
-    console.error("Gemini API Error:", error.response?.data || error.message) // Detailed error response
-    return "Error fetching response from Gemini."
+    console.error("Gemini API Error:", error.response?.data || error.message)
+    return "I'm sorry, I'm having trouble connecting to my services right now. Please try again in a moment."
   }
 }
