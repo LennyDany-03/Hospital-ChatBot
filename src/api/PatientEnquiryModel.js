@@ -3,51 +3,49 @@ import axios from "axios"
 const API_KEY = "AIzaSyCcXkX4_LQxIvX1b53gDCAS7GTTzIiOE0k"
 
 const systemPrompt = `
-You are Sage, a caring and knowledgeable virtual assistant for HealthBridge Hospital.
-Your role is to assist users in identifying their health issues, recommend specific doctors or departments, and guide them through the hospital layout if needed.
+You are SageCare, a compassionate and helpful virtual assistant at HealthBridge Hospital.
+You assist visitors and relatives of patients by providing information such as the patient’s current condition, room number, ward, and summary reports (if allowed).
 
 Hospital Info:
 - Name: HealthBridge Hospital
 - Location: 2nd Cross Road, Midtown
-- Open Hours: 8 AM to 8 PM (Monday to Saturday)
+- Visiting Hours: 10 AM to 12 PM, 4 PM to 6 PM (All days)
 
-Services & Doctors:
-- General Medicine: Dr. Anita Rao (1st Floor, Room 101)
-- Pediatrics: Dr. Rajiv Menon (1st Floor, Room 110)
-- Dermatology: Dr. Shalini Das (2nd Floor, Cabin 204)
-- Orthopedics: Dr. Vikram Sinha (2nd Floor, Cabin 210)
-- ENT: Dr. Neha Kapoor (2nd Floor, Room 215)
-- Cardiology: Dr. Arvind Bhatia (3rd Floor, Room 301)
-- Neurology: Dr. Priya Sharma (3rd Floor, Room 310)
-- Ophthalmology: Dr. Rahul Verma (1st Floor, Room 120)
-- Psychiatry: Dr. Meera Patel (4th Floor, Room 405)
-- Gynecology: Dr. Sunita Gupta (4th Floor, Room 410)
-
-Features:
-- Appointment booking with doctor and preferred time slot
-- Floor and room number navigation
-- Indoor roadmap to direct users to departments (mention "Would you like a map to reach Dr. X's cabin?")
-
-Appointment Booking Process:
-1. When a user wants to book an appointment, ask for their name
-2. Then ask for their preferred date (format: DD/MM/YYYY or "tomorrow", "next Monday", etc.)
-3. Then ask for their preferred time slot
-4. After collecting all information, confirm the appointment with a message like:
-   "Your appointment with [Doctor Name] has been confirmed for [Patient Name] on [Date] at [Time]. Your appointment ID is [ID]. You can download your appointment letter from the button below."
-
-Interaction Guidelines:
-- Greet users only on the **first** interaction.
-- Be professional, empathetic, and clear.
-- After understanding symptoms, suggest the specific doctor, department, and exact location (floor/room/cabin).
-- Ask if they'd like to book an appointment or see a roadmap to the room.
-- Provide consultation hours and help with follow-up queries.
+Guidelines:
+- Always verify the patient's name before providing any information.
+- Greet only on the **first** interaction.
+- Provide only authorized details like ward, room number, current condition (e.g., stable, recovering, under observation), and a short summary report if allowed.
+- Mention if the patient has any restrictions on visitors or if reports are confidential.
+- Never disclose sensitive medical records unless allowed.
+- Be polite, supportive, and maintain hospital confidentiality.
+- Always mention the attending doctor if asked.
 
 Example:
-User: I have chest pain.
-Sage: I recommend you consult Dr. Arvind Bhatia, our cardiologist. He's available on the 3rd Floor, Room 301. Would you like to book an appointment or get a map to reach his cabin?
+User: Can you tell me where Ravi Kumar is?
+SageCare: Ravi Kumar is in Room 202, Ward B on the 2nd Floor. He is currently recovering and in stable condition. Visiting hours are from 4 PM to 6 PM today. Would you like directions to his room?
 
-Make your responses natural, detailed, and supportive.
+If you detect emotional distress (e.g., “what happened to him?”), reply empathetically and reassure them about ongoing care.
+
+Available Patients (examples for internal use):
+1. Ravi Kumar – Room 202, Ward B, Stable, recovering from surgery
+2. Neha Sharma – ICU 3, Critical, under intensive observation
+3. Ramesh Babu – Room 105, Ward A, Recovering, post-cardiac treatment
+4. Priya Das – Pediatric Ward 1, Playful and improving
+5. Venkatesh Iyer – Neuro Ward 4, Observation stage, mild head injury
+6. Swathi Menon – Maternity Ward, Stable, delivered baby boy
+7. Imran Sheikh – Trauma Unit 1, Serious but responsive
+8. Harish Rajan – Oncology Ward 3, Chemotherapy ongoing
+9. Lavanya S – Room 210, Ward C, Recovering, minor fracture
+10. Surya R – Room 301, Post-op ward, Resting well
+11. Keerthana K – ICU 1, Critical but improving
+12. Abdul Rahman – Ward B, Stable, under diabetes treatment
+13. Deeksha Rao – ENT Ward, Improving post nasal surgery
+14. Yogesh R – Psychiatry, Stable, under observation
+15. Amrita Pillai – Maternity, Discharged today at 11 AM
+
+Be sure to personalize responses and maintain a warm tone of care.
 `
+
 
 // Track conversation state - make it persistent
 const conversationState = {
@@ -84,9 +82,10 @@ const symptomToDoctorMap = {
   baby: "Dr. Rajiv Menon", // Pediatrics
 }
 
-export const getGeminiResponse = async (userPrompt) => {
+export const getGeminiResponse = async (userPrompt, language = "en") => {
   try {
     console.log("Current conversation state:", JSON.stringify(conversationState))
+    console.log("Current language:", language)
 
     // Add user message to previous messages for context
     conversationState.previousMessages.push({ role: "user", content: userPrompt })
@@ -95,26 +94,39 @@ export const getGeminiResponse = async (userPrompt) => {
     if (conversationState.isBookingAppointment) {
       console.log("In booking flow, stage:", conversationState.stage)
 
+      // Create response based on booking stage
+      let response = ""
+
       switch (conversationState.stage) {
         case "name":
           // User is providing their name
           conversationState.patientName = userPrompt
           conversationState.stage = "date"
-          const nameResponse = `Thank you, ${userPrompt}. What date would you prefer for your appointment with ${conversationState.doctorName}? (Please specify a date like "tomorrow", "next Monday", or DD/MM/YYYY)`
+          response = `Thank you, ${userPrompt}. What date would you prefer for your appointment with ${conversationState.doctorName}? (Please specify a date like "tomorrow", "next Monday", or DD/MM/YYYY)`
 
           // Add bot response to previous messages
-          conversationState.previousMessages.push({ role: "assistant", content: nameResponse })
-          return nameResponse
+          conversationState.previousMessages.push({ role: "assistant", content: response })
+
+          // If language is not English, translate the response
+          if (language !== "en") {
+            return await translateText(response, language)
+          }
+          return response
 
         case "date":
           // User is providing the date
           conversationState.appointmentDate = userPrompt
           conversationState.stage = "time"
-          const dateResponse = `Great! And what time would work best for you on ${userPrompt}? Dr. ${conversationState.doctorName.split(" ")[1]} is available between 9:00 AM and 5:00 PM.`
+          response = `Great! And what time would work best for you on ${userPrompt}? Dr. ${conversationState.doctorName.split(" ")[1]} is available between 9:00 AM and 5:00 PM.`
 
           // Add bot response to previous messages
-          conversationState.previousMessages.push({ role: "assistant", content: dateResponse })
-          return dateResponse
+          conversationState.previousMessages.push({ role: "assistant", content: response })
+
+          // If language is not English, translate the response
+          if (language !== "en") {
+            return await translateText(response, language)
+          }
+          return response
 
         case "time":
           // User is providing the time
@@ -124,10 +136,10 @@ export const getGeminiResponse = async (userPrompt) => {
           const appointmentId = `HB-${Math.floor(100000 + Math.random() * 900000)}`
 
           // Create confirmation message BEFORE resetting state
-          const confirmationMessage = `Your appointment with ${conversationState.doctorName} has been confirmed for ${conversationState.patientName} on ${conversationState.appointmentDate} at ${conversationState.appointmentTime}. Your appointment ID is ${appointmentId}. You can download your appointment letter from the button below.`
+          response = `Your appointment with ${conversationState.doctorName} has been confirmed for ${conversationState.patientName} on ${conversationState.appointmentDate} at ${conversationState.appointmentTime}. Your appointment ID is ${appointmentId}. You can download your appointment letter from the button below.`
 
           // Add bot response to previous messages
-          conversationState.previousMessages.push({ role: "assistant", content: confirmationMessage })
+          conversationState.previousMessages.push({ role: "assistant", content: response })
 
           // Reset booking state but keep previous messages
           conversationState.isBookingAppointment = false
@@ -137,7 +149,11 @@ export const getGeminiResponse = async (userPrompt) => {
           conversationState.appointmentTime = null
           conversationState.stage = "initial"
 
-          return confirmationMessage
+          // If language is not English, translate the response
+          if (language !== "en") {
+            return await translateText(response, language)
+          }
+          return response
       }
     }
 
@@ -192,6 +208,11 @@ export const getGeminiResponse = async (userPrompt) => {
 
         // Add bot response to previous messages
         conversationState.previousMessages.push({ role: "assistant", content: bookingResponse })
+
+        // If language is not English, translate the response
+        if (language !== "en") {
+          return await translateText(bookingResponse, language)
+        }
         return bookingResponse
       }
     }
@@ -211,7 +232,18 @@ export const getGeminiResponse = async (userPrompt) => {
       }
     })
 
-    contextPrompt += `\nUser: ${userPrompt}`
+    // If language is not English, translate the user prompt to English for Gemini
+    let processedUserPrompt = userPrompt
+    if (language !== "en") {
+      try {
+        processedUserPrompt = await translateText(userPrompt, "en", language)
+      } catch (error) {
+        console.error("Error translating user prompt to English:", error)
+        // Continue with original prompt if translation fails
+      }
+    }
+
+    contextPrompt += `\nUser: ${processedUserPrompt}`
 
     console.log("Sending Request to Gemini API with context")
 
@@ -231,7 +263,7 @@ export const getGeminiResponse = async (userPrompt) => {
     )
 
     const candidates = response.data.candidates
-    const botResponse = candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini."
+    let botResponse = candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini."
 
     // Add bot response to previous messages
     conversationState.previousMessages.push({ role: "assistant", content: botResponse })
@@ -259,9 +291,65 @@ export const getGeminiResponse = async (userPrompt) => {
       }
     }
 
+    // If language is not English, translate the response
+    if (language !== "en") {
+      botResponse = await translateText(botResponse, language)
+    }
+
     return botResponse
   } catch (error) {
     console.error("Gemini API Error:", error.response?.data || error.message)
     return "I'm sorry, I'm having trouble connecting to my services right now. Please try again in a moment."
+  }
+}
+
+// Function to translate text using Google Translate API
+async function translateText(text, targetLang, sourceLang = "en") {
+  try {
+    const response = await axios.post(
+      `https://translation.googleapis.com/language/translate/v2?key=AIzaSyBU_VSOvAgHm6QgDPysqp2CxwGC8woPJ3o`,
+      {
+        q: text,
+        target: targetLang,
+        source: sourceLang,
+        format: "text",
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+      },
+    )
+
+    return response.data.data.translations[0].translatedText
+  } catch (error) {
+    console.error("Translation error:", error)
+    return text // Return original text if translation fails
+  }
+}
+
+// Add this function at the end of the file, after the translateText function
+// This will be used for text-to-speech conversion
+export const synthesizeSpeech = async (text, languageCode) => {
+  try {
+    const response = await axios.post(
+      `https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyBU_VSOvAgHm6QgDPysqp2CxwGC8woPJ3o`,
+      {
+        input: { text },
+        voice: {
+          languageCode,
+          name: languageCode === "ta-IN" ? "ta-IN-Standard-A" : "en-US-Standard-C",
+        },
+        audioConfig: {
+          audioEncoding: "MP3",
+        },
+      },
+      {
+        headers: { "Content-Type": "application/json" },
+      },
+    )
+
+    return response.data.audioContent
+  } catch (error) {
+    console.error("Speech synthesis error:", error)
+    throw error
   }
 }

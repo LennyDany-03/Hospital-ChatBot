@@ -3,23 +3,116 @@
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "react-toastify"
-import { getGeminiResponse } from "../api/gemini"
-import { Send, Bot, User, Clock, Calendar, Download, X } from "lucide-react"
+import { Send, Bot, User, Clock, Calendar, Download, X, Mic, MicOff, Volume2, VolumeX } from "lucide-react"
 import jsPDF from "jspdf"
+import { useTranslation } from "../context/TranslationContext"
+import SpeechRecognition, { useSpeechRecognition } from "react-speech-recognition"
+import axios from "axios"
+import { getGeminiResponse } from "../api/PatientEnquiryModel"
 
 const ChatBot = () => {
+  const { translations, language, isLoading } = useTranslation()
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState([])
   const [isTyping, setIsTyping] = useState(false)
   const [appointmentData, setAppointmentData] = useState(null)
   const [showAppointmentModal, setShowAppointmentModal] = useState(false)
+  const [speakingMessageId, setSpeakingMessageId] = useState(null)
   const messagesEndRef = useRef(null)
   const chatBoxRef = useRef(null)
+  const speechSynthRef = useRef(window.speechSynthesis)
+
+  // Speech recognition
+  const { transcript, listening, resetTranscript, browserSupportsSpeechRecognition } = useSpeechRecognition()
 
   // Scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // Update input when transcript changes
+  useEffect(() => {
+    if (transcript) {
+      setInput(transcript)
+    }
+  }, [transcript])
+
+  // Clean up speech synthesis when component unmounts
+  useEffect(() => {
+    return () => {
+      if (speechSynthRef.current) {
+        speechSynthRef.current.cancel()
+      }
+    }
+  }, [])
+
+  // Handle microphone toggle
+  const toggleListening = () => {
+    if (listening) {
+      SpeechRecognition.stopListening()
+    } else {
+      resetTranscript()
+      SpeechRecognition.startListening({ continuous: true, language: language === "ta" ? "ta-IN" : "en-US" })
+      toast.info("Listening...", { autoClose: 2000 })
+    }
+  }
+
+  // Replace the existing speakMessage function with this Google TTS implementation
+  const speakMessage = async (text, messageId) => {
+    // Cancel any ongoing speech
+    if (speechSynthRef.current) {
+      speechSynthRef.current.cancel()
+    }
+
+    // If we're already speaking this message, stop it
+    if (speakingMessageId === messageId) {
+      setSpeakingMessageId(null)
+      return
+    }
+
+    // Set the speaking message ID to show the active state
+    setSpeakingMessageId(messageId)
+
+    try {
+      // Determine language based on user selection
+      const languageCode = language === "ta" ? "ta-IN" : "en-US"
+      const voiceName = language === "ta" ? "ta-IN-Standard-A" : "en-US-Standard-C"
+
+      const response = await axios.post(
+        "https://texttospeech.googleapis.com/v1/text:synthesize?key=AIzaSyBU_VSOvAgHm6QgDPysqp2CxwGC8woPJ3o",
+        {
+          input: { text },
+          voice: {
+            languageCode,
+            name: voiceName,
+          },
+          audioConfig: {
+            audioEncoding: "MP3",
+          },
+        },
+      )
+
+      const audioContent = response.data.audioContent
+      const audio = new Audio(`data:audio/mp3;base64,${audioContent}`)
+
+      // Add event listeners
+      audio.onended = () => {
+        setSpeakingMessageId(null)
+      }
+
+      audio.onerror = () => {
+        setSpeakingMessageId(null)
+        toast.error("Speech synthesis failed", { autoClose: 3000 })
+      }
+
+      // Play the audio
+      await audio.play()
+    } catch (error) {
+      console.error("Google TTS Error:", error.response?.data || error.message)
+      setSpeakingMessageId(null)
+      toast.error("Failed to speak the text", { autoClose: 3000 })
+    }
+  }
 
   // Process the bot response to detect appointment confirmation
   const processResponse = (text) => {
@@ -77,13 +170,15 @@ const ChatBot = () => {
       const typingDelay = Math.max(1000, Math.min(input.length * 50, 3000))
 
       setTimeout(async () => {
-        const botReply = await getGeminiResponse(input)
+        // Pass the current language to the Gemini API
+        const botReply = await getGeminiResponse(input, language)
         setIsTyping(false)
 
         // Process the response to check for appointment confirmation
         const processedReply = processResponse(botReply)
 
-        setMessages([...newMessages, { type: "bot", text: processedReply, timestamp: new Date() }])
+        const messageId = Date.now().toString()
+        setMessages([...newMessages, { id: messageId, type: "bot", text: processedReply, timestamp: new Date() }])
 
         // Success notification
         toast.success("Sage responded!", { autoClose: 2000 })
@@ -147,6 +242,17 @@ const ChatBot = () => {
     doc.save(`HealthBridge_Appointment_${appointmentData.appointmentId}.pdf`)
 
     toast.success("Appointment PDF downloaded successfully!", { autoClose: 3000 })
+  }
+
+  // Get plain text from message (remove formatting)
+  const getPlainText = (text) => {
+    if (!text) return ""
+
+    // Remove markdown-style formatting
+    return text
+      .replace(/\*\*([^*]+)\*\*/g, "$1") // Remove bold
+      .replace(/\*([^*]+)\*/g, "$1") // Remove italic
+      .replace(/^[*-]\s+/gm, "• ") // Convert bullet points
   }
 
   // Format message text to properly display bullet points and other formatting
@@ -228,26 +334,36 @@ const ChatBot = () => {
     return formatted
   }
 
+  // Show loading indicator while translations are loading
+  if (isLoading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading translations...</p>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="modern-chat-container">
         <div className="chat-header">
           <Bot size={20} />
-          <span>Sage Assistant</span>
+          <span>Patient Enquiry Bot</span>
         </div>
 
         <div className="modern-chat-box" ref={chatBoxRef}>
           {messages.length === 0 && (
             <div className="empty-chat">
               <Bot size={40} />
-              <p>Say hello to Sage, your HealthBridge Hospital assistant!</p>
+              <p>{translations.emptyChat}</p>
             </div>
           )}
 
           <AnimatePresence>
             {messages.map((msg, index) => (
               <motion.div
-                key={index}
+                key={msg.id || index}
                 initial={{ opacity: 0, y: 20, scale: 0.8 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.3 }}
@@ -257,9 +373,22 @@ const ChatBot = () => {
                   <div className="message-icon">{msg.type === "user" ? <User size={16} /> : <Bot size={16} />}</div>
                   <div className="message-content">
                     <div className="message-text">{msg.type === "bot" ? formatMessageText(msg.text) : msg.text}</div>
-                    <div className="message-time">
-                      <Clock size={12} />
-                      <span>{formatTime(msg.timestamp)}</span>
+                    <div className="message-footer">
+                      <div className="message-time">
+                        <Clock size={12} />
+                        <span>{formatTime(msg.timestamp)}</span>
+                      </div>
+
+                      {/* Text-to-speech button for bot messages */}
+                      {msg.type === "bot" && (
+                        <button
+                          className={`speak-button ${speakingMessageId === msg.id ? "speaking" : ""}`}
+                          onClick={() => speakMessage(getPlainText(msg.text), msg.id)}
+                          aria-label={speakingMessageId === msg.id ? "Stop speaking" : "Speak message"}
+                        >
+                          {speakingMessageId === msg.id ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -283,12 +412,23 @@ const ChatBot = () => {
         <div className="modern-input-area">
           <input
             type="text"
-            placeholder="Ask Sage about health issues or appointments..."
+            placeholder={translations.chatPlaceholder}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             disabled={isTyping}
           />
+          {browserSupportsSpeechRecognition && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }}
+              onClick={toggleListening}
+              className={`mic-button ${listening ? "listening" : ""}`}
+              aria-label={listening ? "Stop listening" : "Start listening"}
+            >
+              {listening ? <MicOff size={18} /> : <Mic size={18} />}
+            </motion.button>
+          )}
           <motion.button
             whileTap={{ scale: 0.9 }}
             whileHover={{ scale: 1.05 }}
@@ -312,7 +452,7 @@ const ChatBot = () => {
               exit={{ scale: 0.8, y: 50 }}
             >
               <div className="modal-header">
-                <h2>Appointment Confirmed!</h2>
+                <h2>{translations.appointmentConfirmed}</h2>
                 <button className="close-button" onClick={() => setShowAppointmentModal(false)}>
                   <X size={20} />
                 </button>
@@ -322,37 +462,37 @@ const ChatBot = () => {
                 <div className="appointment-card">
                   <div className="appointment-card-header">
                     <Calendar size={24} />
-                    <h3>HealthBridge Hospital</h3>
+                    <h3>{translations.appointmentDetails}</h3>
                   </div>
 
                   <div className="appointment-info">
                     <div className="info-row">
-                      <span className="info-label">Patient:</span>
+                      <span className="info-label">{translations.patientLabel}</span>
                       <span className="info-value">{appointmentData.patientName}</span>
                     </div>
                     <div className="info-row">
-                      <span className="info-label">Doctor:</span>
+                      <span className="info-label">{translations.doctorLabel}</span>
                       <span className="info-value">{appointmentData.doctor}</span>
                     </div>
                     <div className="info-row">
-                      <span className="info-label">Date:</span>
+                      <span className="info-label">{translations.dateLabel}</span>
                       <span className="info-value">{appointmentData.date}</span>
                     </div>
                     <div className="info-row">
-                      <span className="info-label">Time:</span>
+                      <span className="info-label">{translations.timeLabel}</span>
                       <span className="info-value">{appointmentData.time}</span>
                     </div>
                     <div className="info-row">
-                      <span className="info-label">Appointment ID:</span>
+                      <span className="info-label">{translations.appointmentIdLabel}</span>
                       <span className="info-value">{appointmentData.appointmentId}</span>
                     </div>
                   </div>
 
                   <div className="appointment-footer">
-                    <p>Please arrive 15 minutes before your scheduled time.</p>
+                    <p>{translations.arriveEarly}</p>
                     <button className="download-button" onClick={downloadAppointmentPDF}>
                       <Download size={16} />
-                      Download Appointment
+                      {translations.downloadAppointment}
                     </button>
                   </div>
                 </div>

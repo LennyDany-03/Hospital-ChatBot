@@ -28,6 +28,34 @@ body {
   overflow-x: hidden;
 }
 
+/* Loading Spinner */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80vh;
+  gap: 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid var(--secondary-color);
+  border-top: 5px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 /* App Container */
 .app-container {
   max-width: 1200px;
@@ -38,6 +66,7 @@ body {
   min-height: 100vh;
 }
 
+/* App Header with Back Button */
 .app-header {
   display: flex;
   align-items: center;
@@ -45,6 +74,32 @@ body {
   margin-bottom: 2rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back-button-small {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--secondary-color);
+  color: var(--primary-color);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-button-small:hover {
+  background-color: var(--primary-color);
+  color: white;
+  transform: scale(1.05);
 }
 
 .app-header h1 {
@@ -156,6 +211,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
 }
 
 .message-text {
@@ -184,12 +240,45 @@ body {
   color: var(--primary-color);
 }
 
+.message-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
 .message-time {
   font-size: 0.7rem;
   opacity: 0.8;
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* Speak button styles */
+.speak-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--light-text);
+  opacity: 0.7;
+  transition: all 0.2s;
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.speak-button:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.speak-button.speaking {
+  color: var(--primary-color);
+  opacity: 1;
+  animation: pulse 1.5s infinite;
 }
 
 /* Typing Indicator */
@@ -286,6 +375,44 @@ body {
 .modern-input-area button.disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+/* Microphone button styles */
+.mic-button {
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-right: 8px;
+}
+
+.mic-button.listening {
+  background-color: #ff4b6e;
+  color: white;
+  animation: pulse 1.5s infinite;
+}
+
+.mic-button:hover {
+  transform: scale(1.05);
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 75, 110, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 75, 110, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 75, 110, 0);
+  }
 }
 
 /* Appointment Modal Styles */
@@ -1205,5 +1332,89 @@ body {
 
   .cta-content h2 {
     font-size: 1.5rem;
+  }
+}
+
+/* Add styles for the decision page */
+.decision-options {
+  display: flex;
+  gap: 30px;
+  margin-top: 40px;
+  justify-content: center;
+  width: 100%;
+}
+
+.decision-option {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 30px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.decision-option:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px rgba(106, 61, 232, 0.2);
+  background-color: rgba(106, 61, 232, 0.05);
+}
+
+.decision-option.selected {
+  background: rgba(106, 61, 232, 0.1);
+  border: 2px solid #6a3de8;
+}
+
+.decision-icon-wrapper {
+  background: rgba(106, 61, 232, 0.1);
+  border-radius: 50%;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.decision-option h3 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.decision-option p {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.select-button {
+  margin-top: 20px;
+  background: #6a3de8;
+  color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.select-button:hover {
+  transform: scale(1.1);
+}
+
+/* Responsive adjustments for decision page */
+@media (max-width: 768px) {
+  .decision-options {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .decision-option {
+    width: 100%;
+    max-width: 280px;
   }
 }

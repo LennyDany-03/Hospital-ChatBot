@@ -4,12 +4,13 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft, Check } from "lucide-react"
+import { useTranslation } from "../context/TranslationContext"
 
-import ChatBot from '../assets/ChatBot.jpg'
-
+import ChatBot from "../assets/ChatBot.jpg"
 
 const LangPage = () => {
   const navigate = useNavigate()
+  const { changeLanguage } = useTranslation()
   const [selectedLang, setSelectedLang] = useState(null)
   const [showWelcome, setShowWelcome] = useState(false)
   const [currentText, setCurrentText] = useState("")
@@ -53,6 +54,13 @@ const LangPage = () => {
   const handleSelectLang = (lang) => {
     setSelectedLang(lang)
 
+    // Set the language in the translation context
+    if (lang === "english") {
+      changeLanguage("en")
+    } else if (lang === "tamil") {
+      changeLanguage("ta")
+    }
+
     // Simulate saving language preference
     setTimeout(() => {
       navigate("/consultancybot")
@@ -83,7 +91,7 @@ const LangPage = () => {
         >
           <div className="character-wrapper">
             <div className="character">
-              <img src={ChatBot} alt="Priya - Health Assistant" />
+              <img src={ChatBot || "/placeholder.svg"} alt="Priya - Health Assistant" />
 
               {/* Animated mouth */}
               <motion.div
