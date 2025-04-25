@@ -1,21 +1,20 @@
-import { ToastContainer } from "react-toastify"
-import "react-toastify/dist/ReactToastify.css"
-import ChatBot from "./components/ChatBot"
-import "./index.css"
-import { Hospital } from "lucide-react"
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import Landing from './pages/LandingPage'
+import LangPage from './pages/LangPage'
+import ConsultancyBot from './pages/ConsultancyBot'
+import PatientEnquiry from './pages/PatientEnquiryBot'
 
-function App() {
+const App = () => {
   return (
-    <div className="app-container">
-      <div className="app-header">
-        <Hospital size={28} className="hospital-icon" />
-        <h1>Sage HealthBridge</h1>
-      </div>
-      <div className="app-content">
-        <ChatBot />
-      </div>
-      <ToastContainer position="top-right" />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/langpage" element={<LangPage />} />
+        <Route path="/consultancybot" element={<ConsultancyBot />} />
+        <Route path="/patientenquirybot" element={<PatientEnquiry />} />
+      </Routes>
+    </Router>
   )
 }
 
