@@ -27,6 +27,8 @@ const translationDictionary = {
 
   // Appointment modal
   appointmentDetails: "HealthBridge Hospital",
+  consutancybot: "Consultancy Bot",
+  PatientEnquiryBot: "Patient Enquiry Bot", 
 
   // Common buttons
   sendButton: "Send",

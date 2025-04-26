@@ -349,7 +349,7 @@ const ChatBot = () => {
       <div className="modern-chat-container">
         <div className="chat-header">
           <Bot size={20} />
-          <span>Patient Enquiry Bot</span>
+          <span>{translations.PatientEnquiryBot}</span>
         </div>
 
         <div className="modern-chat-box" ref={chatBoxRef}>
