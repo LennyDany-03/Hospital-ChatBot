@@ -63,7 +63,7 @@ const LangPage = () => {
 
     // Simulate saving language preference
     setTimeout(() => {
-      navigate("/consultancybot")
+      navigate("/botdesistion")
     }, 1000)
   }
 
