@@ -8,7 +8,7 @@ export const TranslationContext = createContext()
 // Dictionary of all translatable text in the application
 const translationDictionary = {
   // ChatBot component
-  chatPlaceholder: "Ask Sage about health issues or appointments...",
+  chatPlaceholder: "Ask Sara about health issues or appointments...",
   chatHeader: "Sage Assistant",
   downloadAppointment: "Download Appointment",
   appointmentConfirmed: "Appointment Confirmed!",
@@ -20,10 +20,10 @@ const translationDictionary = {
   arriveEarly: "Please arrive 15 minutes before your scheduled time.",
 
   // ConsultancyBot component
-  sageHealthBridge: "Sage HealthBridge",
+  sageHealthBridge: "Sara HealthBridge",
 
   // Empty chat message
-  emptyChat: "Say hello to Sage, your HealthBridge Hospital assistant!",
+  emptyChat: "Say hello to Sara, your HealthBridge Hospital assistant!",
 
   // Appointment modal
   appointmentDetails: "HealthBridge Hospital",

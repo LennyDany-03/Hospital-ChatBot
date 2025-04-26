@@ -3,7 +3,7 @@ import axios from "axios"
 const API_KEY = "AIzaSyCcXkX4_LQxIvX1b53gDCAS7GTTzIiOE0k"
 
 const systemPrompt = `
-You are Sage, a caring and knowledgeable virtual assistant for HealthBridge Hospital.
+You are Sara, a caring and knowledgeable virtual assistant for HealthBridge Hospital.
 Your role is to assist users in identifying their health issues, recommend specific doctors or departments, and guide them through the hospital layout if needed.
 
 Hospital Info:
@@ -32,7 +32,7 @@ Appointment Booking Process:
 1. When a user wants to book an appointment, ask for their name
 2. Then ask for their preferred date (format: DD/MM/YYYY or "tomorrow", "next Monday", etc.)
 3. Then ask for their preferred time slot
-4. After collecting all information, confirm the appointment with a message like:
+4. After collecting all information, confirm the appointment with a mesSara like:
    "Your appointment with [Doctor Name] has been confirmed for [Patient Name] on [Date] at [Time]. Your appointment ID is [ID]. You can download your appointment letter from the button below."
 
 Interaction Guidelines:
@@ -44,7 +44,7 @@ Interaction Guidelines:
 
 Example:
 User: I have chest pain.
-Sage: I recommend you consult Dr. Arvind Bhatia, our cardiologist. He's available on the 3rd Floor, Room 301. Would you like to book an appointment or get a map to reach his cabin?
+Sara: I recommend you consult Dr. Arvind Bhatia, our cardiologist. He's available on the 3rd Floor, Room 301. Would you like to book an appointment or get a map to reach his cabin?
 
 Make your responses natural, detailed, and supportive.
 `
@@ -57,7 +57,7 @@ const conversationState = {
   appointmentDate: null,
   appointmentTime: null,
   stage: "initial", // initial, name, date, time, confirmed
-  previousMessages: [], // Store previous messages for context
+  previousMesSaras: [], // Store previous mesSaras for context
 }
 
 // Map symptoms to doctors for better recommendations
@@ -89,8 +89,8 @@ export const getGeminiResponse = async (userPrompt, language = "en") => {
     console.log("Current conversation state:", JSON.stringify(conversationState))
     console.log("Current language:", language)
 
-    // Add user message to previous messages for context
-    conversationState.previousMessages.push({ role: "user", content: userPrompt })
+    // Add user mesSara to previous mesSaras for context
+    conversationState.previousMesSaras.push({ role: "user", content: userPrompt })
 
     // Process user input based on conversation state
     if (conversationState.isBookingAppointment) {
@@ -106,8 +106,8 @@ export const getGeminiResponse = async (userPrompt, language = "en") => {
           conversationState.stage = "date"
           response = `Thank you, ${userPrompt}. What date would you prefer for your appointment with ${conversationState.doctorName}? (Please specify a date like "tomorrow", "next Monday", or DD/MM/YYYY)`
 
-          // Add bot response to previous messages
-          conversationState.previousMessages.push({ role: "assistant", content: response })
+          // Add bot response to previous mesSaras
+          conversationState.previousMesSaras.push({ role: "assistant", content: response })
 
           // If language is not English, translate the response
           if (language !== "en") {
@@ -121,8 +121,8 @@ export const getGeminiResponse = async (userPrompt, language = "en") => {
           conversationState.stage = "time"
           response = `Great! And what time would work best for you on ${userPrompt}? Dr. ${conversationState.doctorName.split(" ")[1]} is available between 9:00 AM and 5:00 PM.`
 
-          // Add bot response to previous messages
-          conversationState.previousMessages.push({ role: "assistant", content: response })
+          // Add bot response to previous mesSaras
+          conversationState.previousMesSaras.push({ role: "assistant", content: response })
 
           // If language is not English, translate the response
           if (language !== "en") {
@@ -137,13 +137,13 @@ export const getGeminiResponse = async (userPrompt, language = "en") => {
           // Generate a random appointment ID
           const appointmentId = `HB-${Math.floor(100000 + Math.random() * 900000)}`
 
-          // Create confirmation message BEFORE resetting state
+          // Create confirmation mesSara BEFORE resetting state
           response = `Your appointment with ${conversationState.doctorName} has been confirmed for ${conversationState.patientName} on ${conversationState.appointmentDate} at ${conversationState.appointmentTime}. Your appointment ID is ${appointmentId}. You can download your appointment letter from the button below.`
 
-          // Add bot response to previous messages
-          conversationState.previousMessages.push({ role: "assistant", content: response })
+          // Add bot response to previous mesSaras
+          conversationState.previousMesSaras.push({ role: "assistant", content: response })
 
-          // Reset booking state but keep previous messages
+          // Reset booking state but keep previous mesSaras
           conversationState.isBookingAppointment = false
           conversationState.doctorName = null
           conversationState.patientName = null
@@ -208,8 +208,8 @@ export const getGeminiResponse = async (userPrompt, language = "en") => {
 
         const bookingResponse = `I'd be happy to book an appointment with ${doctorName} for you. Could you please provide your full name?`
 
-        // Add bot response to previous messages
-        conversationState.previousMessages.push({ role: "assistant", content: bookingResponse })
+        // Add bot response to previous mesSaras
+        conversationState.previousMesSaras.push({ role: "assistant", content: bookingResponse })
 
         // If language is not English, translate the response
         if (language !== "en") {
@@ -222,15 +222,15 @@ export const getGeminiResponse = async (userPrompt, language = "en") => {
     // If we reach here, use the Gemini API for a response
     console.log("Using Gemini API for response")
 
-    // Build context from previous messages (limit to last 5 for brevity)
-    const recentMessages = conversationState.previousMessages.slice(-10)
+    // Build context from previous mesSaras (limit to last 5 for brevity)
+    const recentMesSaras = conversationState.previousMesSaras.slice(-10)
     let contextPrompt = systemPrompt + "\n\nConversation history:\n"
 
-    recentMessages.forEach((msg) => {
+    recentMesSaras.forEach((msg) => {
       if (msg.role === "user") {
         contextPrompt += `User: ${msg.content}\n`
       } else {
-        contextPrompt += `Sage: ${msg.content}\n`
+        contextPrompt += `Sara: ${msg.content}\n`
       }
     })
 
@@ -267,8 +267,8 @@ export const getGeminiResponse = async (userPrompt, language = "en") => {
     const candidates = response.data.candidates
     let botResponse = candidates?.[0]?.content?.parts?.[0]?.text || "No response from Gemini."
 
-    // Add bot response to previous messages
-    conversationState.previousMessages.push({ role: "assistant", content: botResponse })
+    // Add bot response to previous mesSaras
+    conversationState.previousMesSaras.push({ role: "assistant", content: botResponse })
 
     // Check if the response suggests a doctor and the user might want to book
     const doctorMatches = [
@@ -300,7 +300,7 @@ export const getGeminiResponse = async (userPrompt, language = "en") => {
 
     return botResponse
   } catch (error) {
-    console.error("Gemini API Error:", error.response?.data || error.message)
+    console.error("Gemini API Error:", error.response?.data || error.mesSara)
     return "I'm sorry, I'm having trouble connecting to my services right now. Please try again in a moment."
   }
 }
