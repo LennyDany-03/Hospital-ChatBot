@@ -69,6 +69,18 @@ const LangPage = () => {
 
   return (
     <div className="language-container">
+      <motion.button
+         className="back-button"
+         initial={{ opacity: 0, x: -20 }}
+         animate={{ opacity: 1, x: 0 }}
+         transition={{ delay: 0.3 }}
+         whileHover={{ scale: 1.05 }}
+         whileTap={{ scale: 0.95 }}
+         onClick={() => navigate("/")}
+       >
+         <ArrowLeft size={20} />
+         Back
+       </motion.button>
 
       <div className="language-content">
         <motion.div
