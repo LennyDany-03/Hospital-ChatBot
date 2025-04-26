@@ -156,7 +156,7 @@
                  ease: "easeInOut",
                }}
              >
-               <img src={ChatBot || "/placeholder.svg"} alt="Sara - Health Assistant" />
+               <img src={ChatBot || "/placeholder.svg"} className="SaraImage" alt="Sara - Health Assistant" />
              </motion.div>
            </motion.div>
          </div>

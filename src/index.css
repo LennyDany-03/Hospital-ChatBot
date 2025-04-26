@@ -1418,3 +1418,7 @@ body {
     max-width: 280px;
   }
 }
+
+.SaraImage{
+  border-radius: 20px;
+}

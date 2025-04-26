@@ -78,7 +78,7 @@ const BotDesistion = () => {
                   animate={{ scale: 1 }}
                   transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                  <img src={ChatBot || "/placeholder.svg"} alt="Sage - Health Assistant" />
+                  <img src={ChatBot || "/placeholder.svg"} className="SaraImage" alt="Sage - Health Assistant" />
                 </motion.div>
 
                 <motion.div

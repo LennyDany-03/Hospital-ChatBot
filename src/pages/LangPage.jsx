@@ -79,7 +79,7 @@ const LangPage = () => {
         >
           <div className="character-wrapper">
             <div className="character">
-              <img src={ChatBot || "/placeholder.svg"} alt="Priya - Health Assistant" />
+              <img className="SaraImage" src={ChatBot || "/placeholder.svg"} alt="Priya - Health Assistant" />
 
               {/* Animated mouth */}
               <motion.div
